@@ -1,7 +1,7 @@
 /**
  * @file PreloadStage.hpp
  * @author Naikekongwo
- * @brief 预加载场景 - 负责显示加载画面并在后台加载所需资源
+ * @brief 预加载场景 - 负责把覆盖层交给启动页
  * @version 0.1
  * @date 2026-06-14
  *
@@ -10,17 +10,13 @@
  */
 #pragma once
 #include "World/Stage/OverlayStage.hpp"
-#include <future>
-#include <memory>
 
-class Timer;
-class StageManager;
 class Event;
 
 class PreloadStage : public OverlayStage
 {
   public:
-    PreloadStage(Timer *timer, StageManager *sController);
+    PreloadStage()           = default;
     ~PreloadStage() override = default;
 
     bool parseEvents(Event *event) override;
@@ -35,7 +31,4 @@ class PreloadStage : public OverlayStage
     void onExit() override;
 
     void onDestroy() override;
-
-  private:
-    std::future<void> LoadingState;
 };

@@ -86,3 +86,45 @@
 - 期望：以异常或状态值把失败传给调用方。
 - 阻塞：否
 - 状态：待汇总
+
+### OC-009 UI 层缺圆角矩形与圆角按钮
+
+- 类型：新能力
+- 现状：`include/Runtime/Graphics/UI/` 下的控件只有矩形底或纹理底，没有按半径自绘的圆角控件；`RoundedPanel::PaintInto()` 这类逐行铺圆角的绘制能力也不在引擎里。
+- 需求：可设填充色、描边色、描边宽、半径的圆角矩形元素，以及在其上叠文字并带 Normal/Hovered/Pressed 三态的圆角按钮。
+- 用途：启动页的 BETA 标记、主次按钮；后续编辑页的面板与字段底。
+- 本地过渡：已提升到引擎：`UIElement` 的 `setCornerRadius/setBorderColor/setBorderWidth`、`OpenUI::Panel`、`OpenUI::RoundedRect`；项目侧 `src/Compat/` 已删除。
+- 阻塞：否
+- 状态：已接入并移除项目层实现（2026-10-28）
+
+### OC-010 TextArea 无法按内容自适应尺寸
+
+- 类型：缺陷 + 新能力
+- 位置：`src/Runtime/IDrawableObject_impl.cpp:169`、`:187`（`applyScale` 的 `w * h == 0` 分支解引用 `texture`）、`src/Runtime/TextArea_impl.cpp:6`（构造时传空纹理）
+- 现象：读代码确认：对 `TextArea` 调用 `ScaleR(w, 0)` 或 `Scale(0, h)` 想按宽高比自动计算时，`texture` 为空，`texture->getTextureRatio()` 是空指针解引用。未运行复现。
+- 影响：文本元素必须同时给死宽高，版面只能手算相对值；标题、标签做不了内容自适应。
+- 期望：文本元素能按 `Text::Measure()` 结果自适应尺寸，或在没有纹理时跳过宽高比分支并给出可用尺寸。
+- 用途：启动页标题、后续编辑页的标签与表单文字。
+- 阻塞：否
+- 状态：待汇总
+
+### OC-011 setRenderTarget 按 SDL2 语义判断返回值
+
+- 类型：缺陷
+- 位置：`src/Runtime/GraphicsManager_impl.cpp:136`
+- 现象：`if (SDL_SetRenderTarget(renderer, texture) != 0)`。SDL3 的 `SDL_SetRenderTarget()` 返回 `bool`（成功为 true），这句在成功时反而走进失败分支：每次调用都打印 `设置渲染目标失败: `（`SDL_GetError()` 为空）并返回 -1，实际渲染目标已经切换成功。
+- 证据：2026-10-28 运行 `OpenScripter.exe`，启动页创建两个 `TextArea` 后 stderr 出现 4 条该日志；SDL3 头文件 `SDL_render.h` 声明为 `extern SDL_DECLSPEC bool SDLCALL SDL_SetRenderTarget(SDL_Renderer *renderer, SDL_Texture *texture);`。
+- 影响：返回值不可信；依赖它的调用方（`TextArea::generateTexture`）会误判，启动日志被噪声占满。
+- 期望：改为 `if (!SDL_SetRenderTarget(...))`，或统一按 bool 语义处理。
+- 阻塞：否
+- 状态：已解决（2026-10-28 改为 SDL3 bool 语义）
+
+### OC-012 同一字体按字号重复缓存整份字体数据
+
+- 类型：性能
+- 位置：`src/Asset/PackageManager_impl.cpp:718`（逐次 `extractResourceData`）、`:743`（每个字号各自持有 `dataKeepAlive`）
+- 现象：`getFont(name, ptsize)` 每个字号都会从资源包里读出一整份字体字节并随 `TTF_Font` 持有；启动页用到 192/48/44 三种字号，17MB 字体在内存里变成三份。
+- 影响：启动页工作集约 100MB；按代码推断其中约 51MB 来自三份重复字体数据（未单独测量）。
+- 期望：按资源名缓存一份字体字节，多个 `TTF_Font` 共享同一份数据。
+- 阻塞：否
+- 状态：待汇总

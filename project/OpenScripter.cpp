@@ -1,6 +1,7 @@
 #include "OpenScripter/OpenScripter.hpp"
 #include <cstdlib>
 #include <exception>
+#include <iostream>
 
 int main(int argc, char **args)
 {

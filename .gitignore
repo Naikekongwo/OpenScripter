@@ -16,3 +16,5 @@ build_tmp/
 assets/assets/raw/
 
 # 屏蔽clang-format
+
+desktop.ini
